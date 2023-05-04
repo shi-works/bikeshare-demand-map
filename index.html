@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>シェアサイクル満空情報マップ（2023年5月3日）</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <!-- MapLibre -->
+    <script src='https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js'></script>
+    <link href='https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css' rel='stylesheet' />
+    <script src="https://unpkg.com/pmtiles@2.7.0/dist/index.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <style>
+        .map-overlay {
+            font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+            position: absolute;
+            width: auto;
+            top: 0;
+            left: 0;
+            padding: 10px;
+        }
+
+        .map-overlay .map-overlay-inner {
+            background-color: #fff;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            border-radius: 3px;
+            padding: 10px;
+            margin-bottom: 5px;
+        }
+
+        .map-overlay h3 {
+            line-height: 12px;
+            display: block;
+            margin: 0 0 10px;
+        }
+
+        .map-overlay .legend .bar {
+            height: 10px;
+            width: 100%;
+            background: linear-gradient(to right, #CCFFCC, #00ff00);
+        }
+
+        .map-overlay input {
+            background-color: transparent;
+            display: inline-block;
+            width: 100%;
+            position: relative;
+            margin: 0;
+            cursor: ew-resize;
+        }
+
+        .maplibregl-popup .maplibregl-popup-content {
+            padding: 8px 10px;
+            font: 12px/14px Arial, Helvetica, sans-serif;
+            color: black;
+            background: white;
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.9);
+            border-radius: 5px;
+            width: 240px;
+            height: 240px;
+            /*overflow: scroll;*/
+        }
+
+        .label-large {
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        th,
+        td {
+            border: solid 1px;
+            /* 枠線指定 */
+        }
+
+        table {
+            font-size: 8pt;
+            /*table-layout: fixed;*/
+            /*width: 340px;*/
+            border-collapse: collapse;
+            /* セルの線を重ねる */
+        }
+
+        .legend {
+            background-color: #fff;
+            border-radius: 3px;
+            bottom: 50px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.10);
+            font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+            padding: 10px;
+            position: absolute;
+            right: 10px;
+            z-index: 1;
+            line-height: 16px;
+            height: 140px;
+        }
+
+        .legend h4 {
+            margin: 0 0 10px;
+        }
+
+        .legend div span {
+            border-radius: 50%;
+            display: inline-block;
+            height: 15px;
+            margin-right: 10px;
+            width: 15px;
+            color: orangered
+        }
+
+        .circle {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .square {
+            width: 10px;
+            height: 10px;
+        }
+    </style>
+
+    <div id="map"></div>
+    <div class="map-overlay top">
+        <div class="map-overlay-inner">
+            <h3>シェアサイクル満空情報マップ（2023年5月3日）</h3>
+            <label id="unixtime_label" class="label-large"></label>
+            <input id="slider" type="range" min="1683039600" max="1683122400" step="3600" value="1683039600">
+        </div>
+    </div>
+    <div id='county-legend' class='legend'>
+        <h4>貸出可能台数の割合</h4>
+        <div class="circle" style='background-color: rgb(255, 0, 0);display: inline-block;'></div>
+        <span style="display: inline-block; margin-left: 5px;">0%</span><br>
+        <div class="circle" style='background-color: rgb(255, 127, 0);display: inline-block;'></div>
+        <span style="display: inline-block; margin-left: 5px;">0%超～20%以下</span><br>
+        <div class="circle" style='background-color: rgb(255, 255, 0);display: inline-block;'></div>
+        <span style="display: inline-block; margin-left: 5px;">20%超～40%以下</span><br>
+        <div class="circle" style='background-color: rgb(0, 255, 0);display: inline-block;'></div>
+        <span style="display: inline-block; margin-left: 5px;">40%超～60%以下</span><br>
+        <div class="circle" style='background-color: rgb(0, 255, 255);display: inline-block;'></div>
+        <span style="display: inline-block; margin-left: 5px;">60%超～80%以下</span><br>
+        <div class="circle" style='background-color: rgb(0, 127, 255);display: inline-block;'></div>
+        <span style="display: inline-block; margin-left: 5px;">80%超</span><br>
+        <div class="square" style='background-color: rgba(255, 191, 0, 0.2);display: inline-block;'></div>
+        <span style="display: inline-block; margin-left: 5px;">人口集中地区（2020年）</span>
+    </div>
+    <script type="text/javascript">
+        // add the PMTiles plugin to the maplibregl global.
+        let protocol = new pmtiles.Protocol();
+        maplibregl.addProtocol("pmtiles", protocol.tile);
+
+        let PMTILES_HELLO_URL = "https://pmtiles-data.s3.ap-northeast-1.amazonaws.com/sharecycle/hellocycling_station_status_add_latlng.pmtiles";
+        let PMTILES_DOCOMO_URL = "https://pmtiles-data.s3.ap-northeast-1.amazonaws.com/sharecycle/docomo_cycle_tokyo_station_status_add_latlng.pmtiles";
+        let PMTILES_DID_URL = "https://web-map-maplibre.s3.ap-northeast-1.amazonaws.com/traffic-signal-cycle-map/data/2020_did_ddsw_01-47_JGD2011.pmtiles";
+
+        const p1 = new pmtiles.PMTiles(PMTILES_HELLO_URL)
+        const p2 = new pmtiles.PMTiles(PMTILES_DOCOMO_URL)
+        const p3 = new pmtiles.PMTiles(PMTILES_DID_URL)
+
+        // this is so we share one instance across the JS code and the map renderer
+        protocol.add(p1);
+        protocol.add(p2);
+        protocol.add(p3);
+
+        var map = new maplibregl.Map({
+            container: 'map',
+            style: './dark.json',
+            center: [139.6226196, 35.4660694], // 中心座標
+            zoom: 6, // ズームレベル
+            pitch: 0, // 傾き
+            hash: true,
+            // 既存Attributionを非表示
+            attributionControl: false
+        })
+
+        // ズーム・回転
+        map.addControl(new maplibregl.NavigationControl());
+
+        // フルスクリーンモードのオンオフ
+        map.addControl(new maplibregl.FullscreenControl());
+
+        // 現在位置表示
+        map.addControl(new maplibregl.GeolocateControl({
+            positionOptions: {
+                enableHighAccuracy: false
+            },
+            fitBoundsOptions: { maxZoom: 18 },
+            trackUserLocation: true,
+            showUserLocation: true
+        }));
+
+        // スケール表示
+        map.addControl(new maplibregl.ScaleControl({
+            maxWidth: 200,
+            unit: 'metric'
+        }));
+
+        // Attributionを折りたたみ表示
+        map.addControl(new maplibregl.AttributionControl({
+            compact: true,
+            customAttribution: '（<a href="https://twitter.com/syanseto" target="_blank">Twitter</a> | <a href="https://github.com/shi-works/bikeshare-demand-map" target="_blank">Github</a>） '
+        }));
+
+        function filterBy(unixtime) {
+            const filter = ['all',
+                ['==', ['get', 'last_reported_2'], unixtime],
+                ['==', ['get', 'is_renting'], 'True']
+            ];
+            map.setFilter('docomo-cycle-toyko-points-1', filter);
+            map.setFilter('docomo-cycle-toyko-points-2', filter);
+            map.setFilter('docomo-cycle-toyko-points-3', filter);
+            map.setFilter('hellocycling-points-1', filter);
+            map.setFilter('hellocycling-points-2', filter);
+            map.setFilter('hellocycling-points-3', filter);
+
+            // スライダー表示用ラベル
+
+            // Unixタイムスタンプ（秒単位）
+            const unixTimestamp = unixtime;
+
+            // Unixタイムスタンプをミリ秒単位に変換
+            const milliseconds = unixTimestamp * 1000;
+
+            // Dateオブジェクトを作成
+            const date = new Date(milliseconds);
+
+            // 日時をフォーマットして表示
+            const year = date.getFullYear();
+            const month = ('0' + (date.getMonth() + 1)).slice(-2); // 月は0から始まるため、1を加えます
+            const day = ('0' + date.getDate()).slice(-2);
+            const hours = ('0' + date.getHours()).slice(-2);
+            // const minutes = ('0' + date.getMinutes()).slice(-2);
+            // const seconds = ('0' + date.getSeconds()).slice(-2);
+
+            // const formattedDate = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+            const formattedDate = `${year}-${month}-${day} ${hours}`;
+            // console.log(formattedDate);
+
+            document.getElementById('unixtime_label').textContent = formattedDate + '時台';
+
+        }
+
+        map.on('load', () => {
+            // 人口集中地区ベクトルタイル
+            map.addSource("did", {
+                type: "vector",
+                url: "pmtiles://" + PMTILES_DID_URL,
+                attribution: '<a href="https://www.e-stat.go.jp/gis">政府統計の総合窓口[e-Stat] 人口集中地区（2020年）</a>'
+            });
+
+            // 人口集中地区ポリゴンレイヤ
+            map.addLayer({
+                "id": "did-polygon",
+                "source": "did",
+                "source-layer": "2020_did_ddsw_0147_JGD2011fgb",
+                "type": "fill",
+                "paint": {
+                    'fill-color': 'rgb(255, 191, 0)',
+                    'fill-opacity': 0.2
+                }
+            });
+
+
+            // ドコモ・バイクシェア（東京）
+            map.addSource("docomo-cycle-toyko", {
+                type: "vector",
+                url: "pmtiles://" + PMTILES_DOCOMO_URL,
+                attribution: '<a href="https://ckan.odpt.org/dataset/c_bikeshare_gbfs-d-bikeshare">株式会社ドコモ・バイクシェア / 公共交通オープンデータ協議会</a>'
+            });
+
+            // ドコモ・バイクシェア（東京）ポイント
+            map.addLayer({
+                'id': 'docomo-cycle-toyko-points-1',
+                'type': 'circle',
+                'source': 'docomo-cycle-toyko',
+                "source-layer": "docomo_cycle_tokyo_station_status_add_latlng",
+                'paint': {
+                    'circle-color': [
+                        "case",
+                        ["==", ["get", "rate"], 0.0], 'rgba(255, 0, 0, 1)',
+                        ["<=", ["get", "rate"], 0.2], 'rgba(255, 127, 0, 1)',
+                        ["<=", ["get", "rate"], 0.4], 'rgba(255, 255, 0, 1)',
+                        ["<=", ["get", "rate"], 0.6], 'rgba(0, 255, 0, 1)',
+                        ["<=", ["get", "rate"], 0.8], 'rgba(0, 255, 255, 1)',
+                        'rgba(0, 127, 255, 1)'
+                    ],
+                    'circle-radius': 18,
+                    'circle-blur': 2.5,
+                    'circle-opacity': 0.6
+                }
+            });
+
+            // ドドコモ・バイクシェア（東京）ポイント
+            map.addLayer({
+                'id': 'docomo-cycle-toyko-points-2',
+                'type': 'circle',
+                'source': 'docomo-cycle-toyko',
+                "source-layer": "docomo_cycle_tokyo_station_status_add_latlng",
+                'paint': {
+                    'circle-color': [
+                        "case",
+                        ["==", ["get", "rate"], 0.0], 'rgba(255, 0, 0, 1)',
+                        ["<=", ["get", "rate"], 0.2], 'rgba(255, 127, 0, 1)',
+                        ["<=", ["get", "rate"], 0.4], 'rgba(255, 255, 0, 1)',
+                        ["<=", ["get", "rate"], 0.6], 'rgba(0, 255, 0, 1)',
+                        ["<=", ["get", "rate"], 0.8], 'rgba(0, 255, 255, 1)',
+                        'rgba(0, 127, 255, 1)'
+                    ],
+                    'circle-radius': 9,
+                    'circle-blur': 1.5,
+                    'circle-opacity': 0.8
+                }
+            });
+
+            // ドコモ・バイクシェア（東京）ポイント
+            map.addLayer({
+                'id': 'docomo-cycle-toyko-points-3',
+                'type': 'circle',
+                'source': 'docomo-cycle-toyko',
+                "source-layer": "docomo_cycle_tokyo_station_status_add_latlng",
+                'paint': {
+                    'circle-color': 'rgba(255, 255, 255, 1)',
+                    'circle-radius': 1,
+                    'circle-blur': 0,
+                    'circle-opacity': 1
+                }
+            });
+
+            // HELLOCYCLING
+            map.addSource("hellocycling", {
+                type: "vector",
+                url: "pmtiles://" + PMTILES_HELLO_URL,
+                attribution: '<a href="https://ckan.odpt.org/dataset/c_bikeshare_gbfs-openstreet">OpenStreet株式会社 / 公共交通オープンデータ協議会</a>'
+            });
+
+            // HELLOCYCLINGポイント
+            map.addLayer({
+                'id': 'hellocycling-points-1',
+                'type': 'circle',
+                'source': 'hellocycling',
+                "source-layer": "hellocycling_station_status_add_latlng",
+                'paint': {
+                    'circle-color': [
+                        "case",
+                        ["==", ["get", "rate"], 0.0], 'rgba(255, 0, 0, 1)',
+                        ["<=", ["get", "rate"], 0.2], 'rgba(255, 127, 0, 1)',
+                        ["<=", ["get", "rate"], 0.4], 'rgba(255, 255, 0, 1)',
+                        ["<=", ["get", "rate"], 0.6], 'rgba(0, 255, 0, 1)',
+                        ["<=", ["get", "rate"], 0.8], 'rgba(0, 255, 255, 1)',
+                        'rgba(0, 127, 255, 1)'
+                    ],
+                    'circle-radius': 18,
+                    'circle-blur': 2.5,
+                    'circle-opacity': 0.6
+                }
+            });
+
+            // HELLOCYCLINGポイント
+            map.addLayer({
+                'id': 'hellocycling-points-2',
+                'type': 'circle',
+                'source': 'hellocycling',
+                "source-layer": "hellocycling_station_status_add_latlng",
+                'paint': {
+                    'circle-color': [
+                        "case",
+                        ["==", ["get", "rate"], 0.0], 'rgba(255, 0, 0, 1)',
+                        ["<=", ["get", "rate"], 0.2], 'rgba(255, 127, 0, 1)',
+                        ["<=", ["get", "rate"], 0.4], 'rgba(255, 255, 0, 1)',
+                        ["<=", ["get", "rate"], 0.6], 'rgba(0, 255, 0, 1)',
+                        ["<=", ["get", "rate"], 0.8], 'rgba(0, 255, 255, 1)',
+                        'rgba(0, 127, 255, 1)'
+                    ],
+                    'circle-radius': 9,
+                    'circle-blur': 1.5,
+                    'circle-opacity': 0.8
+                }
+            });
+
+            // HELLOCYCLINGポイント
+            map.addLayer({
+                'id': 'hellocycling-points-3',
+                'type': 'circle',
+                'source': 'hellocycling',
+                "source-layer": "hellocycling_station_status_add_latlng",
+                'paint': {
+                    'circle-color': 'rgba(255, 255, 255, 1)',
+                    'circle-radius': 1,
+                    'circle-blur': 0,
+                    'circle-opacity': 1
+                }
+            });
+
+            // フィルター実行
+            filterBy(1683039600); // 初期表示
+            document.getElementById('slider').addEventListener('input', (e) => {
+                const hour = parseInt(e.target.value, 10); // スライダーで選択した時間を整数化
+                filterBy(hour);
+            });
+
+        });
+
+        map.on('click', 'docomo-cycle-toyko-points-1', (e) => {
+            var lng = e.lngLat.lng;
+            var lat = e.lngLat.lat;
+            var name = e.features[0].properties['name'];
+            var is_renting = e.features[0].properties['is_renting'];
+            var station_id = e.features[0].properties['station_id'];
+            var last_reported = e.features[0].properties['last_reported'];
+
+            // Unixタイムを通常の日時に変換
+            var date = new Date(last_reported * 1000); // Unixタイムスタンプは秒単位なので、ミリ秒に変換するために1000をかける
+
+            // ゼロ埋め関数
+            function padZero(num) {
+                return num.toString().padStart(2, '0');
+            }
+
+            // 日付と時刻をフォーマット
+            var year = date.getFullYear();
+            var month = padZero(date.getMonth() + 1); // getMonth()は0から始まるので、1を足す
+            var day = padZero(date.getDate());
+            var hours = padZero(date.getHours());
+            var minutes = padZero(date.getMinutes());
+            var seconds = padZero(date.getSeconds());
+
+            // var formattedDateTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+            var formattedDateTime = `${year}-${month}-${day} ${hours}:${minutes}`;
+
+            // console.log(formattedDateTime);
+
+            var num_bikes_available = e.features[0].properties['num_bikes_available'];
+            var num_docks_available = e.features[0].properties['num_docks_available'];
+
+            new maplibregl.Popup()
+                .setLngLat(e.lngLat)
+                .setHTML(
+                    // 表形式
+                    '<p>' + '<b>' + 'ドコモ・バイクシェア' + '</b>' + '</p>' +
+                    '<table ' + 'style="font-size: 8pt; table-layout: fixed;"' + '>' +
+                    '<tr>' + '<th width="100">' + '項目' + '</th> ' + '<th width="120">' + '内容' + '</th> ' + '</tr>' +
+                    '<tr>' + '<td>' + 'name' + '</td> ' + '<td>' + name + '</td> ' + '</tr>' +
+                    '<tr>' + '<td>' + 'is_renting' + '</td> ' + '<td>' + is_renting + '</td> ' + '</tr>' +
+                    '<tr>' + '<td>' + 'station_id' + '</td> ' + '<td>' + station_id + '</td> ' + '</tr>' +
+                    '<tr>' + '<td>' + 'last_reported' + '</td> ' + '<td>' + formattedDateTime + '</td> ' + '</tr>' +
+                    '<tr>' + '<td>' + 'num_bikes_available' + '</td> ' + '<td>' + num_bikes_available + '</td> ' + '</tr>' +
+                    '<tr>' + '<td>' + 'num_docks_available' + '</td> ' + '<td>' + num_docks_available + '</td> ' + '</tr>' +
+                    '<table>'
+                    + '座標: ' + lat.toFixed(7) + "," + lng.toFixed(7) + '<br>※クリック位置の座標<br>'
+                    + '<a href=\https://www.google.com/maps?q=' + lat + "," + lng + "&hl=ja' target='_blank'>🌎Google Maps</a>" + ' '
+                    + '<a href=\https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=' + lat + "," + lng + "&hl=ja' target='_blank'>📷Street View</a>"
+                )
+                .addTo(map);
+        });
+
+        map.on('click', 'hellocycling-points-1', (e) => {
+            var lng = e.lngLat.lng;
+            var lat = e.lngLat.lat;
+            var name = e.features[0].properties['name'];
+            var rental_uris_web = e.features[0].properties['rental_uris.web'];
+            var is_renting = e.features[0].properties['is_renting'];
+            var station_id = e.features[0].properties['station_id'];
+            var last_reported = e.features[0].properties['last_reported'];
+
+            // Unixタイムを通常の日時に変換
+            var date = new Date(last_reported * 1000); // Unixタイムスタンプは秒単位なので、ミリ秒に変換するために1000をかける
+
+            // ゼロ埋め関数
+            function padZero(num) {
+                return num.toString().padStart(2, '0');
+            }
+
+            // 日付と時刻をフォーマット
+            var year = date.getFullYear();
+            var month = padZero(date.getMonth() + 1); // getMonth()は0から始まるので、1を足す
+            var day = padZero(date.getDate());
+            var hours = padZero(date.getHours());
+            var minutes = padZero(date.getMinutes());
+            var seconds = padZero(date.getSeconds());
+
+            // var formattedDateTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+            var formattedDateTime = `${year}-${month}-${day} ${hours}:${minutes}`;
+
+            // console.log(formattedDateTime);
+
+            var num_bikes_available = e.features[0].properties['num_bikes_available'];
+            var num_docks_available = e.features[0].properties['num_docks_available'];
+
+            new maplibregl.Popup()
+                .setLngLat(e.lngLat)
+                .setHTML(
+                    // 表形式
+                    '<p>' + '<b>' + 'HELLO CYCLING' + '</b>' + '</p>' +
+                    '<table ' + 'style="font-size: 8pt; table-layout: fixed;"' + '>' +
+                    '<tr>' + '<th width="100">' + '項目' + '</th> ' + '<th width="120">' + '内容' + '</th> ' + '</tr>' +
+                    '<tr>' + '<td>' + 'name' + '</td> ' + '<td>' + name + '</td> ' + '</tr>' +
+                    '<tr>' + '<td>' + 'rental_uris.web' + '</td> ' + '<td>' + '<a href="' + rental_uris_web + '" target="_blank">' + 'WebURL' + '</a>' + '</td> ' + '</tr>' +
+                    '<tr>' + '<td>' + 'is_renting' + '</td> ' + '<td>' + is_renting + '</td> ' + '</tr>' +
+                    '<tr>' + '<td>' + 'station_id' + '</td> ' + '<td>' + station_id + '</td> ' + '</tr>' +
+                    '<tr>' + '<td>' + 'last_reported' + '</td> ' + '<td>' + formattedDateTime + '</td> ' + '</tr>' +
+                    '<tr>' + '<td>' + 'num_bikes_available' + '</td> ' + '<td>' + num_bikes_available + '</td> ' + '</tr>' +
+                    '<tr>' + '<td>' + 'num_docks_available' + '</td> ' + '<td>' + num_docks_available + '</td> ' + '</tr>' +
+                    '<table>'
+                    + '座標: ' + lat.toFixed(7) + "," + lng.toFixed(7) + '<br>※クリック位置の座標<br>'
+                    + '<a href=\https://www.google.com/maps?q=' + lat + "," + lng + "&hl=ja' target='_blank'>🌎Google Maps</a>" + ' '
+                    + '<a href=\https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=' + lat + "," + lng + "&hl=ja' target='_blank'>📷Street View</a>"
+                )
+                .addTo(map);
+        });
+    </script>
+
+</body>
+
+</html>
