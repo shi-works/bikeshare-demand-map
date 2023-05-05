@@ -5,7 +5,7 @@
 ## データの取得
 ### gbfs_station_status_dl_v2.py
 - pythonで下記の公共交通オープンデータセンターよりGBFS形式のデータ（station_status.json）を取得します。  
-[ドコモ・バイクシェア](https://ckan.odpt.org/dataset/c_bikeshare_gbfs-d-bikeshare/resource/f114f7d1-11c8-4f03-98e1-2a6d2fd53e2e)  
+[ドコモ・バイクシェア](https://ckan.odpt.org/dataset/c_bikeshare_gbfs-d-bikeshare/resource/06ddbb21-be3d-4163-ac92-d90127e9bf90)  
 URL: `https://api-public.odpt.org/api/v4/gbfs/docomo-cycle-tokyo/station_status.json`  
 [HELLOCYCLING](https://ckan.odpt.org/dataset/c_bikeshare_gbfs-openstreet/resource/ccbd64b6-93f0-412e-be8a-391c72aecf61)  
 URL: `https://api-public.odpt.org/api/v4/gbfs/hellocycling/station_status.json`
