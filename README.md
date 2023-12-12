@@ -15,20 +15,20 @@ URL: `https://api-public.odpt.org/api/v4/gbfs/hellocycling/station_status.json`
 #### 出力結果
 - ※ただし、30分ごとのstation_status.jsonをcsvfile-merge.pyでマージした結果になります。
 #### ドコモ・バイクシェア
-`https://pmtiles-data.s3.ap-northeast-1.amazonaws.com/sharecycle/docomo-cycle-tokyo_merge/20230503/docomo-cycle-tokyo_station_status.csv`,1.1MB  
+`https://xs489works.xsrv.jp/pmtiles-data/sharecycle/docomo-cycle-tokyo_station_status.csv`,1.1MB  
 #### HELLOCYCLING
-`https://pmtiles-data.s3.ap-northeast-1.amazonaws.com/sharecycle/hellocycling_merge/20230503/hellocycling_station_status.csv`,17.9MB
+`https://xs489works.xsrv.jp/pmtiles-data/sharecycle/hellocycling_station_status.csv`,17.9MB
 
 ## データの加工
 ### csvfile-add-latlng.py
 - station_status.csvにstation.csvのステーションの位置座標を付与します。
 #### 使用データ
 ##### ドコモ・バイクシェア
-`https://pmtiles-data.s3.ap-northeast-1.amazonaws.com/sharecycle/docomo-cycle-tokyo_merge/20230503/docomo-cycle-tokyo_station_status.csv`,1.1MB  
-`https://pmtiles-data.s3.ap-northeast-1.amazonaws.com/sharecycle/docomo-cycle-tokyo_merge/docomo-cycle-tokyo_station.csv`,83.0KB  
+`https://xs489works.xsrv.jp/pmtiles-data/sharecycle/docomo-cycle-tokyo_station_status.csv`,1.1MB  
+`https://xs489works.xsrv.jp/pmtiles-data/sharecycle/docomo-cycle-tokyo_station.csv`,83.0KB  
 ##### HELLOCYCLING
-`https://pmtiles-data.s3.ap-northeast-1.amazonaws.com/sharecycle/hellocycling_merge/20230503/hellocycling_station_status.csv`,17.9MB  
-`https://pmtiles-data.s3.ap-northeast-1.amazonaws.com/sharecycle/hellocycling_merge/hellocycling_station.csv`,2.1MB  
+`https://xs489works.xsrv.jp/pmtiles-data/sharecycle/hellocycling_station_status.csv`,17.9MB  
+`https://xs489works.xsrv.jp/pmtiles-data/sharecycle/hellocycling_station.csv`,2.1MB  
 #### 出力結果
 ##### ドコモ・バイクシェア
 `https://xs489works.xsrv.jp/pmtiles-data/sharecycle/docomo-cycle-tokyo_station_status_add_latlng.csv`,3.2MB
