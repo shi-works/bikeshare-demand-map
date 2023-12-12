@@ -46,7 +46,7 @@ URL: `https://api-public.odpt.org/api/v4/gbfs/hellocycling/station_status.json`
 #### ドコモ・バイクシェア
 `https://pmtiles-data.s3.ap-northeast-1.amazonaws.com/sharecycle/docomo_cycle_tokyo_station_status_add_latlng.pmtiles`,3.1MB
 #### HELLOCYCLING
-`https://pmtiles-data.s3.ap-northeast-1.amazonaws.com/sharecycle/hellocycling_station_status_add_latlng.pmtiles`,23.5MB
+`https://xs489works.xsrv.jp/pmtiles-data/sharecycle/hellocycling_station_status_add_latlng.pmtiles`,23.5MB
 
 ## ライセンス
 本データセットはCC-BY-4.0で提供されます。使用の際には本レポジトリへのリンクを提示してください。
