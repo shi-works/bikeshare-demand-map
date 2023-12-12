@@ -31,20 +31,20 @@ URL: `https://api-public.odpt.org/api/v4/gbfs/hellocycling/station_status.json`
 `https://pmtiles-data.s3.ap-northeast-1.amazonaws.com/sharecycle/hellocycling_merge/hellocycling_station.csv`,2.1MB  
 #### 出力結果
 ##### ドコモ・バイクシェア
-`https://pmtiles-data.s3.ap-northeast-1.amazonaws.com/sharecycle/docomo-cycle-tokyo_merge/20230503/docomo-cycle-tokyo_station_status_add_latlng.csv`,3.2MB
+`https://xs489works.xsrv.jp/pmtiles-data/sharecycle/docomo-cycle-tokyo_station_status_add_latlng.csv`,3.2MB
 ##### HELLOCYCLING
-`https://pmtiles-data.s3.ap-northeast-1.amazonaws.com/sharecycle/hellocycling_merge/20230503/hellocycling_station_status_add_latlng.csv`,57.2MB
+`https://xs489works.xsrv.jp/pmtiles-data/sharecycle/hellocycling_station_status_add_latlng.csv`,57.2MB
 
 ## GeoJSONからPMTilesへの変換
 - Webマップ表示用にGeoJSONを[tippecanoe](https://github.com/felt/tippecanoe)で[PMTiles形式](https://github.com/protomaps/PMTiles)に変換したデータになります。
 ### 使用データ
 #### ドコモ・バイクシェア
-`https://pmtiles-data.s3.ap-northeast-1.amazonaws.com/sharecycle/docomo-cycle-tokyo_merge/20230503/docomo_cycle_tokyo_station_status_add_latlng.geojson`,12.8MB
+`https://xs489works.xsrv.jp/pmtiles-data/sharecycle/docomo_cycle_tokyo_station_status_add_latlng.geojson`,12.8MB
 #### HELLOCYCLING
-`https://pmtiles-data.s3.ap-northeast-1.amazonaws.com/sharecycle/hellocycling_merge/20230503/hellocycling_station_status_add_latlng.geojson`,155.2MB
+`https://xs489works.xsrv.jp/pmtiles-data/sharecycle/hellocycling_station_status_add_latlng.geojson`,155.2MB
 #### 出力結果
 #### ドコモ・バイクシェア
-`https://pmtiles-data.s3.ap-northeast-1.amazonaws.com/sharecycle/docomo_cycle_tokyo_station_status_add_latlng.pmtiles`,3.1MB
+`https://xs489works.xsrv.jp/pmtiles-data/sharecycle/docomo_cycle_tokyo_station_status_add_latlng.pmtiles`,3.1MB
 #### HELLOCYCLING
 `https://xs489works.xsrv.jp/pmtiles-data/sharecycle/hellocycling_station_status_add_latlng.pmtiles`,23.5MB
 
